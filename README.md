@@ -12,9 +12,10 @@ Spring WebFlux 기반의 CalDAV 서버
 ## 실행
 
 ```bash
-# 로컬 환경
-docker-compose up -d
-./gradlew bootRun 
+$ cp .env.example .env
+# .env 파일에 JWT_SECRET, DATABASE_PASSWORD 등 입력
+$ docker-compose up -d
+$ ./gradlew bootRun
 ```
 
 ## 지원 CalDAV 프로토콜
