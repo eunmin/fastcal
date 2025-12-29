@@ -1,6 +1,6 @@
-# FastCal
+# fastcal
 
-Spring WebFlux 기반의 고성능 CalDAV 서버
+Spring WebFlux 기반의 CalDAV 서버
 
 ## 기술 스택
 
