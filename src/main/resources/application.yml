@@ -58,19 +58,38 @@ management:
     web:
       base-path: /internal/actuator
       exposure:
-        include: health,info
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
   endpoint:
     health:
       show-details: when_authorized
     info:
       enabled: true
     metrics:
-      enabled: false
+      enabled: true
     prometheus:
       enabled: false
   metrics:
     tags:
       application: ${spring.application.name}
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      redis:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  timelimiter:
+    instances:
+      redis:
+        timeoutDuration: 2s
+        cancelRunningFuture: true
 
 # CalDAV specific settings
 caldav:

@@ -30,6 +30,12 @@ public class SecurityConfig {
   @Value("${app.cors.allowed-origins:http://localhost:8080}")
   private String allowedOrigins;
 
+  @Value("${actuator.admin.username:}")
+  private String actuatorUsername;
+
+  @Value("${actuator.admin.password:}")
+  private String actuatorPassword;
+
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
@@ -59,20 +65,59 @@ public class SecurityConfig {
         new UserDetailsRepositoryReactiveAuthenticationManager(userDetailsService);
     authManager.setPasswordEncoder(passwordEncoder);
 
+    UserDetailsRepositoryReactiveAuthenticationManager actuatorAuthManager =
+        new UserDetailsRepositoryReactiveAuthenticationManager(actuatorUserDetailsService(passwordEncoder));
+    actuatorAuthManager.setPasswordEncoder(passwordEncoder);
+
     return http
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(ServerHttpSecurity.CsrfSpec::disable)
         .httpBasic(httpBasic -> httpBasic
-            .authenticationManager(authManager)
+            .authenticationManager(new DelegatingAuthenticationManager(authManager, actuatorAuthManager))
             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance()))
         .authorizeExchange(exchanges -> exchanges
             .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .pathMatchers("/.well-known/caldav", "/.well-known/caldav/").permitAll()
             .pathMatchers("/internal/actuator/health").permitAll()
-            .pathMatchers("/internal/actuator/**").denyAll()
+            .pathMatchers("/internal/actuator/**").hasRole("ACTUATOR")
             .pathMatchers("/calendars/**", "/principals/**").authenticated()
             .anyExchange().authenticated())
         .build();
+  }
+
+  private ReactiveUserDetailsService actuatorUserDetailsService(PasswordEncoder passwordEncoder) {
+    if (actuatorUsername.isEmpty() || actuatorPassword.isEmpty()) {
+      return username -> reactor.core.publisher.Mono.empty();
+    }
+    return username -> {
+      if (actuatorUsername.equals(username)) {
+        return reactor.core.publisher.Mono.just(
+            User.withUsername(actuatorUsername)
+                .password(passwordEncoder.encode(actuatorPassword))
+                .roles("ACTUATOR")
+                .build());
+      }
+      return reactor.core.publisher.Mono.empty();
+    };
+  }
+
+  private static class DelegatingAuthenticationManager implements org.springframework.security.authentication.ReactiveAuthenticationManager {
+    private final UserDetailsRepositoryReactiveAuthenticationManager primaryManager;
+    private final UserDetailsRepositoryReactiveAuthenticationManager actuatorManager;
+
+    DelegatingAuthenticationManager(
+        UserDetailsRepositoryReactiveAuthenticationManager primaryManager,
+        UserDetailsRepositoryReactiveAuthenticationManager actuatorManager) {
+      this.primaryManager = primaryManager;
+      this.actuatorManager = actuatorManager;
+    }
+
+    @Override
+    public reactor.core.publisher.Mono<org.springframework.security.core.Authentication> authenticate(
+        org.springframework.security.core.Authentication authentication) {
+      return actuatorManager.authenticate(authentication)
+          .onErrorResume(e -> primaryManager.authenticate(authentication));
+    }
   }
 
   @Bean

@@ -15,6 +15,12 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0")
+    }
+}
+
 dependencies {
     // Spring WebFlux (Netty)
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -55,6 +61,9 @@ dependencies {
 
     // Rate Limiting
     implementation("com.bucket4j:bucket4j-core:8.7.0")
+
+    // Resilience4j Circuit Breaker (Reactive)
+    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
 
     // Lombok
     compileOnly("org.projectlombok:lombok")
