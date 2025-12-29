@@ -1,0 +1,128 @@
+spring:
+  application:
+    name: fastcal
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # R2DBC PostgreSQL
+  r2dbc:
+    url: ${DATABASE_URL:}
+    username: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+    pool:
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30m
+
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          time-between-eviction-runs: 30s
+          min-evictable-idle-time: 60s
+
+  # WebFlux (Netty)
+  webflux:
+    base-path: /
+  web:
+    resources:
+      add-mappings: false
+
+# Server configuration
+server:
+  port: 8080
+  netty:
+    connection-timeout: 10s
+    idle-timeout: 60s
+    max-keep-alive-requests: 1000
+  max-http-request-header-size: 8KB
+
+# Logging - default to INFO for security (avoid sensitive data in logs)
+logging:
+  level:
+    root: INFO
+    com.fastcal: INFO
+    org.springframework.r2dbc: INFO
+    io.r2dbc.postgresql: INFO
+
+# Actuator - restricted for security
+management:
+  endpoints:
+    web:
+      base-path: /internal/actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+    info:
+      enabled: true
+    metrics:
+      enabled: false
+    prometheus:
+      enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# CalDAV specific settings
+caldav:
+  realm: FastCal CalDAV Server
+  server-info:
+    product-id: -//FastCal//CalDAV Server//EN
+    version: 1.0.0
+  sync:
+    token-prefix: http://fastcal.com/ns/sync/
+
+# Error handling - don't expose internal details in production
+app:
+  error:
+    include-details: false
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/fastcal_dev
+
+logging:
+  level:
+    com.fastcal: TRACE
+
+app:
+  error:
+    include-details: true
+  cors:
+    allowed-origins: http://localhost:8080,http://localhost:3000
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  r2dbc:
+    pool:
+      initial-size: 20
+      max-size: 100
+
+logging:
+  level:
+    root: WARN
+    com.fastcal: INFO
+
+app:
+  cors:
+    allowed-origins: https://cal.eunmin.dev

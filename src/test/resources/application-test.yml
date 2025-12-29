@@ -1,0 +1,24 @@
+spring:
+  r2dbc:
+    url: r2dbc:tc:postgresql:///testdb?TC_IMAGE_TAG=16-alpine
+    username: test
+    password: test
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+caldav:
+  sync:
+    token-prefix: "http://fastcal.com/ns/sync/"
+
+app:
+  cors:
+    allowed-origins: http://localhost:8080
+  error:
+    include-details: true
+
+logging:
+  level:
+    com.fastcal: DEBUG
