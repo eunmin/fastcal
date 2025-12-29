@@ -1,12 +1,18 @@
 package com.fastcal.domain.model;
 
 import com.fastcal.domain.model.vo.CalendarId;
+import com.fastcal.domain.model.vo.EventUid;
+import com.fastcal.domain.model.vo.SyncToken;
 import com.fastcal.domain.model.vo.UserId;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+import org.springframework.lang.NonNull;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Table("sync_changes")
 public class SyncChange {
@@ -15,34 +21,51 @@ public class SyncChange {
   private Long id;
 
   @Column("user_id")
-  private UserId userId;
+  private final UserId userId;
 
   @Column("calendar_id")
-  private CalendarId calendarId;
+  private final CalendarId calendarId;
 
   @Column("event_uid")
-  private String eventUid;
+  private final EventUid eventUid;
 
   @Column("change_type")
-  private ChangeType changeType;
+  private final ChangeType changeType;
 
   @Column("sync_token")
-  private String syncToken;
+  private final SyncToken syncToken;
 
+  @CreatedDate
   @Column("created_at")
   private LocalDateTime createdAt;
 
-  public SyncChange() {
+  protected SyncChange() {
+    this.userId = null;
+    this.calendarId = null;
+    this.eventUid = null;
+    this.changeType = null;
+    this.syncToken = null;
   }
 
-  public SyncChange(Long id, UserId userId, CalendarId calendarId, String eventUid,
-      ChangeType changeType, String syncToken, LocalDateTime createdAt) {
+  public static SyncChange of(@NonNull UserId userId, @NonNull CalendarId calendarId,
+      @NonNull EventUid eventUid, @NonNull ChangeType changeType, @NonNull SyncToken syncToken) {
+    Objects.requireNonNull(userId, "userId must not be null");
+    Objects.requireNonNull(calendarId, "calendarId must not be null");
+    Objects.requireNonNull(eventUid, "eventUid must not be null");
+    Objects.requireNonNull(changeType, "changeType must not be null");
+    Objects.requireNonNull(syncToken, "syncToken must not be null");
+    return new SyncChange(null, userId, calendarId, eventUid, changeType, syncToken, null);
+  }
+
+  @PersistenceCreator
+  private SyncChange(Long id, UserId userId, CalendarId calendarId, EventUid eventUid,
+      ChangeType changeType, SyncToken syncToken, LocalDateTime createdAt) {
     this.id = id;
-    this.userId = userId;
-    this.calendarId = calendarId;
-    this.eventUid = eventUid;
-    this.changeType = changeType;
-    this.syncToken = syncToken;
+    this.userId = Objects.requireNonNull(userId, "userId must not be null");
+    this.calendarId = Objects.requireNonNull(calendarId, "calendarId must not be null");
+    this.eventUid = Objects.requireNonNull(eventUid, "eventUid must not be null");
+    this.changeType = Objects.requireNonNull(changeType, "changeType must not be null");
+    this.syncToken = Objects.requireNonNull(syncToken, "syncToken must not be null");
     this.createdAt = createdAt;
   }
 
@@ -58,47 +81,23 @@ public class SyncChange {
     return userId;
   }
 
-  public void setUserId(UserId userId) {
-    this.userId = userId;
-  }
-
   public CalendarId getCalendarId() {
     return calendarId;
   }
 
-  public void setCalendarId(CalendarId calendarId) {
-    this.calendarId = calendarId;
-  }
-
-  public String getEventUid() {
+  public EventUid getEventUid() {
     return eventUid;
-  }
-
-  public void setEventUid(String eventUid) {
-    this.eventUid = eventUid;
   }
 
   public ChangeType getChangeType() {
     return changeType;
   }
 
-  public void setChangeType(ChangeType changeType) {
-    this.changeType = changeType;
-  }
-
-  public String getSyncToken() {
+  public SyncToken getSyncToken() {
     return syncToken;
-  }
-
-  public void setSyncToken(String syncToken) {
-    this.syncToken = syncToken;
   }
 
   public LocalDateTime getCreatedAt() {
     return createdAt;
-  }
-
-  public void setCreatedAt(LocalDateTime createdAt) {
-    this.createdAt = createdAt;
   }
 }

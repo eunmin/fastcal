@@ -9,13 +9,16 @@ import com.fastcal.domain.model.vo.EventUid;
 import com.fastcal.domain.model.vo.ICalData;
 import com.fastcal.domain.model.vo.RecurrenceRule;
 import com.fastcal.domain.model.vo.UserId;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+import org.springframework.lang.NonNull;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Table("calendar_events")
 public class CalendarEvent {
@@ -24,13 +27,13 @@ public class CalendarEvent {
   private Long id;
 
   @Column("user_id")
-  private UserId userId;
+  private final UserId userId;
 
   @Column("calendar_id")
-  private CalendarId calendarId;
+  private final CalendarId calendarId;
 
   @Column("uid")
-  private EventUid uid;
+  private final EventUid uid;
 
   @Column("ical_data")
   private ICalData icalData;
@@ -67,17 +70,28 @@ public class CalendarEvent {
   @Column("updated_at")
   private LocalDateTime updatedAt;
 
-  public CalendarEvent() {
+  protected CalendarEvent() {
+    this.userId = null;
+    this.calendarId = null;
+    this.uid = null;
   }
 
-  public CalendarEvent(Long id, UserId userId, CalendarId calendarId, EventUid uid, ICalData icalData, ETag etag,
+  public static CalendarEvent of(@NonNull UserId userId, @NonNull CalendarId calendarId, @NonNull EventUid uid) {
+    Objects.requireNonNull(userId, "userId must not be null");
+    Objects.requireNonNull(calendarId, "calendarId must not be null");
+    Objects.requireNonNull(uid, "uid must not be null");
+    return new CalendarEvent(null, userId, calendarId, uid, null, null, null, null, null, null, null, false, null, null, null);
+  }
+
+  @PersistenceCreator
+  private CalendarEvent(Long id, UserId userId, CalendarId calendarId, EventUid uid, ICalData icalData, ETag etag,
       EventSummary summary, EventDescription description, EventLocation location, LocalDateTime dtstart,
       LocalDateTime dtend, boolean allDay, RecurrenceRule rrule,
       LocalDateTime createdAt, LocalDateTime updatedAt) {
     this.id = id;
-    this.userId = userId;
-    this.calendarId = calendarId;
-    this.uid = uid;
+    this.userId = Objects.requireNonNull(userId, "userId must not be null");
+    this.calendarId = Objects.requireNonNull(calendarId, "calendarId must not be null");
+    this.uid = Objects.requireNonNull(uid, "uid must not be null");
     this.icalData = icalData;
     this.etag = etag;
     this.summary = summary;
@@ -103,24 +117,12 @@ public class CalendarEvent {
     return userId;
   }
 
-  public void setUserId(UserId userId) {
-    this.userId = userId;
-  }
-
   public CalendarId getCalendarId() {
     return calendarId;
   }
 
-  public void setCalendarId(CalendarId calendarId) {
-    this.calendarId = calendarId;
-  }
-
   public EventUid getUid() {
     return uid;
-  }
-
-  public void setUid(EventUid uid) {
-    this.uid = uid;
   }
 
   public ICalData getIcalData() {

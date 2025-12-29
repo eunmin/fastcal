@@ -10,6 +10,7 @@ import com.fastcal.domain.model.vo.EventLocation;
 import com.fastcal.domain.model.vo.EventSummary;
 import com.fastcal.domain.model.vo.EventUid;
 import com.fastcal.domain.model.vo.ICalData;
+import com.fastcal.domain.model.vo.SyncToken;
 import com.fastcal.domain.model.vo.RecurrenceRule;
 import com.fastcal.domain.model.vo.UserId;
 import com.fastcal.domain.repository.CalendarEventRepository;
@@ -113,10 +114,7 @@ public class EventService {
     String etag = generateETag(icalData);
     LocalDateTime now = LocalDateTime.now();
 
-    CalendarEvent event = new CalendarEvent();
-    event.setUserId(userId);
-    event.setCalendarId(calendarId);
-    event.setUid(EventUid.of(eventUid));
+    CalendarEvent event = CalendarEvent.of(userId, calendarId, EventUid.of(eventUid));
     event.setIcalData(ICalData.of(icalData));
     event.setEtag(ETag.of(etag));
     event.setSummary(EventSummary.ofNullable(parsed.summary()));
@@ -131,7 +129,7 @@ public class EventService {
 
     return eventRepository.save(event)
         .doOnNext(cacheService::cacheEvent)
-        .flatMap(saved -> recordSyncChange(userId, calendarId, eventUid, ChangeType.CREATED)
+        .flatMap(saved -> recordSyncChange(userId, calendarId, EventUid.of(eventUid), ChangeType.CREATED)
             .thenReturn(new EventSaveResult(etag, true)));
   }
 
@@ -154,7 +152,7 @@ public class EventService {
         .doOnNext(cacheService::cacheEvent)
         .flatMap(
             saved -> recordSyncChange(saved.getUserId(), saved.getCalendarId(),
-                saved.getUid() != null ? saved.getUid().getValue() : null, ChangeType.MODIFIED)
+                saved.getUid(), ChangeType.MODIFIED)
                 .thenReturn(new EventSaveResult(etag, false)));
   }
 
@@ -177,7 +175,7 @@ public class EventService {
             return Mono.<Void>error(new PreconditionFailedException("ETag mismatch"));
           }
           return eventRepository.delete(existing)
-              .then(recordSyncChange(userId, calendarId, eventUid, ChangeType.DELETED))
+              .then(recordSyncChange(userId, calendarId, EventUid.of(eventUid), ChangeType.DELETED))
               .then();
         });
   }
@@ -194,15 +192,9 @@ public class EventService {
     }
   }
 
-  private Mono<SyncChange> recordSyncChange(UserId userId, CalendarId calendarId, String eventUid, ChangeType changeType) {
-    String syncToken = syncTokenPrefix + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString();
-    SyncChange syncChange = new SyncChange();
-    syncChange.setUserId(userId);
-    syncChange.setCalendarId(calendarId);
-    syncChange.setEventUid(eventUid);
-    syncChange.setChangeType(changeType);
-    syncChange.setSyncToken(syncToken);
-    syncChange.setCreatedAt(LocalDateTime.now());
+  private Mono<SyncChange> recordSyncChange(UserId userId, CalendarId calendarId, EventUid eventUid, ChangeType changeType) {
+    SyncToken syncToken = SyncToken.of(syncTokenPrefix + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString());
+    SyncChange syncChange = SyncChange.of(userId, calendarId, eventUid, changeType, syncToken);
     return syncChangeRepository.save(syncChange);
   }
 }

@@ -1,5 +1,6 @@
 package com.fastcal.config;
 
+import com.fastcal.domain.model.vo.Email;
 import com.fastcal.domain.repository.UserRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -76,10 +77,10 @@ public class SecurityConfig {
 
   @Bean
   public ReactiveUserDetailsService userDetailsService(UserRepository userRepository) {
-    return email -> userRepository.findByEmail(email)
+    return email -> userRepository.findByEmail(Email.of(email))
         .filter(com.fastcal.domain.model.User::isEnabled)
-        .map(user -> User.withUsername(user.getEmail())
-            .password(user.getPassword())
+        .map(user -> User.withUsername(user.getEmail().getValue())
+            .password(user.getPassword().getValue())
             .roles("USER")
             .build())
         .switchIfEmpty(reactor.core.publisher.Mono.error(

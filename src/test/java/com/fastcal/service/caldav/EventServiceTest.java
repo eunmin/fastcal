@@ -10,6 +10,7 @@ import com.fastcal.domain.model.vo.ETag;
 import com.fastcal.domain.model.vo.EventSummary;
 import com.fastcal.domain.model.vo.EventUid;
 import com.fastcal.domain.model.vo.ICalData;
+import com.fastcal.domain.model.vo.SyncToken;
 import com.fastcal.domain.model.vo.UserId;
 import com.fastcal.domain.repository.CalendarEventRepository;
 import com.fastcal.domain.repository.SyncChangeRepository;
@@ -92,11 +93,12 @@ class EventServiceTest {
   }
 
   private CalendarEvent createTestEvent() {
-    CalendarEvent event = new CalendarEvent();
+    return createTestEvent(EVENT_UID);
+  }
+
+  private CalendarEvent createTestEvent(String eventUid) {
+    CalendarEvent event = CalendarEvent.of(USER_ID, CALENDAR_ID, EventUid.of(eventUid));
     event.setId(1L);
-    event.setUserId(USER_ID);
-    event.setCalendarId(CALENDAR_ID);
-    event.setUid(EventUid.of(EVENT_UID));
     event.setIcalData(ICalData.of(ICAL_DATA));
     event.setEtag(ETag.of("abc123"));
     event.setSummary(EventSummary.of("Test Event"));
@@ -122,6 +124,10 @@ class EventServiceTest {
         LocalDateTime.of(2024, 12, 25, 11, 0),
         false,
         null);
+  }
+
+  private SyncChange createTestSyncChange() {
+    return SyncChange.of(USER_ID, CALENDAR_ID, EventUid.of(EVENT_UID), ChangeType.CREATED, SyncToken.of("test-sync-token"));
   }
 
   @Nested
@@ -177,8 +183,7 @@ class EventServiceTest {
     @DisplayName("should return all events for calendar")
     void shouldReturnAllEvents() {
       CalendarEvent event1 = createTestEvent();
-      CalendarEvent event2 = createTestEvent();
-      event2.setUid(EventUid.of("event-456"));
+      CalendarEvent event2 = createTestEvent("event-456");
 
       when(eventRepository.findByUserIdAndCalendarId(USER_ID, CALENDAR_ID))
           .thenReturn(Flux.just(event1, event2));
@@ -230,7 +235,7 @@ class EventServiceTest {
       Calendar calendar = createTestCalendar();
       ParsedEvent parsed = createParsedEvent();
       CalendarEvent savedEvent = createTestEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(calendarService.getCalendar(USER_ID, CALENDAR_ID)).thenReturn(Mono.just(calendar));
       when(cacheService.getETag(USER_ID, CALENDAR_ID, EVENT_UID)).thenReturn(Mono.empty());
@@ -263,7 +268,7 @@ class EventServiceTest {
       Calendar calendar = createTestCalendar();
       CalendarEvent existingEvent = createTestEvent();
       ParsedEvent parsed = createParsedEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(calendarService.getCalendar(USER_ID, CALENDAR_ID)).thenReturn(Mono.just(calendar));
       when(cacheService.getETag(USER_ID, CALENDAR_ID, EVENT_UID)).thenReturn(Mono.empty());
@@ -337,7 +342,7 @@ class EventServiceTest {
       CalendarEvent existingEvent = createTestEvent();
       existingEvent.setEtag(ETag.of("correct-etag"));
       ParsedEvent parsed = createParsedEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(calendarService.getCalendar(USER_ID, CALENDAR_ID)).thenReturn(Mono.just(calendar));
       when(cacheService.getETag(USER_ID, CALENDAR_ID, EVENT_UID)).thenReturn(Mono.empty());
@@ -361,7 +366,7 @@ class EventServiceTest {
       Calendar calendar = createTestCalendar();
       CalendarEvent existingEvent = createTestEvent();
       ParsedEvent parsed = createParsedEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(calendarService.getCalendar(USER_ID, CALENDAR_ID)).thenReturn(Mono.just(calendar));
       when(cacheService.getETag(USER_ID, CALENDAR_ID, EVENT_UID)).thenReturn(Mono.just("cached-etag"));
@@ -401,7 +406,7 @@ class EventServiceTest {
     @DisplayName("should delete event successfully")
     void shouldDeleteEvent() {
       CalendarEvent existingEvent = createTestEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(eventRepository.findByUserIdAndCalendarIdAndUid(USER_ID, CALENDAR_ID, EVENT_UID))
           .thenReturn(Mono.just(existingEvent));
@@ -455,7 +460,7 @@ class EventServiceTest {
     void shouldDeleteWhenETagMatches() {
       CalendarEvent existingEvent = createTestEvent();
       existingEvent.setEtag(ETag.of("correct-etag"));
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(eventRepository.findByUserIdAndCalendarIdAndUid(USER_ID, CALENDAR_ID, EVENT_UID))
           .thenReturn(Mono.just(existingEvent));
@@ -548,7 +553,7 @@ class EventServiceTest {
       Calendar calendar = createTestCalendar();
       ParsedEvent parsed = createParsedEvent();
       CalendarEvent savedEvent = createTestEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(calendarService.getCalendar(USER_ID, CALENDAR_ID)).thenReturn(Mono.just(calendar));
       when(cacheService.getETag(USER_ID, CALENDAR_ID, EVENT_UID)).thenReturn(Mono.empty());
@@ -595,7 +600,7 @@ class EventServiceTest {
       Calendar calendar = createTestCalendar();
       ParsedEvent parsed = createParsedEvent();
       CalendarEvent savedEvent = createTestEvent();
-      SyncChange syncChange = new SyncChange();
+      SyncChange syncChange = createTestSyncChange();
 
       when(calendarService.getCalendar(USER_ID, CALENDAR_ID)).thenReturn(Mono.just(calendar));
       when(cacheService.getETag(USER_ID, CALENDAR_ID, EVENT_UID)).thenReturn(Mono.empty());
@@ -641,7 +646,7 @@ class EventServiceTest {
 
       ArgumentCaptor<SyncChange> syncChangeCaptor = ArgumentCaptor.forClass(SyncChange.class);
       verify(syncChangeRepository).save(syncChangeCaptor.capture());
-      assertThat(syncChangeCaptor.getValue().getSyncToken()).startsWith("http://fastcal.com/ns/sync/");
+      assertThat(syncChangeCaptor.getValue().getSyncToken().getValue()).startsWith("http://fastcal.com/ns/sync/");
     }
   }
 }
