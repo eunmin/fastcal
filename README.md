@@ -22,6 +22,17 @@ Spring WebFlux 기반의 CalDAV 서버
 | `REDIS_PORT` | Redis 포트 | `6379` |
 | `APP_CORS_ALLOWED_ORIGINS` | CORS 허용 도메인 | `https://cal.example.com` |
 
+### LDAP 인증
+
+| 변수명 | 설명 | 기본값 |
+|--------|------|--------|
+| `LDAP_ENABLED` | LDAP 활성화 여부 | `true` |
+| `LDAP_URL` | LDAP 서버 URL | `ldap://localhost:389` |
+| `LDAP_BASE_DN` | Base DN | `dc=fastcal,dc=local` |
+| `LDAP_USER_DN_PATTERN` | 사용자 DN 패턴 | `uid={0},ou=People` |
+| `LDAP_MANAGER_DN` | 관리자 DN | `cn=admin,dc=fastcal,dc=local` |
+| `LDAP_MANAGER_PASSWORD` | 관리자 비밀번호 | `admin123` |
+
 ### 선택 (OAuth2)
 
 | 변수명 | 설명 | 기본값 |
