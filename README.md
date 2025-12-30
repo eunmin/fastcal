@@ -33,12 +33,20 @@ Spring WebFlux 기반의 CalDAV 서버
 | `LDAP_MANAGER_DN` | 관리자 DN | `cn=admin,dc=fastcal,dc=local` |
 | `LDAP_MANAGER_PASSWORD` | 관리자 비밀번호 | `admin123` |
 
-### 선택 (OAuth2)
+### 선택 (OAuth2 Resource Server)
 
 | 변수명 | 설명 | 기본값 |
 |--------|------|--------|
 | `OAUTH2_ENABLED` | OAuth2 활성화 여부 | `false` |
 | `OAUTH2_ISSUER_URI` | Keycloak issuer URI | |
+
+**OAuth2 설정 시 주의사항:**
+
+- JWT Resource Server로 동작하며, Bearer 토큰 인증을 지원합니다
+- 사용자 식별에 `email` 클레임을 사용합니다 (LDAP 인증과 동일한 식별자)
+- Keycloak 클라이언트 스코프에서 `email` 클레임이 JWT에 포함되도록 설정해야 합니다
+- CalDAV 클라이언트는 OAuth2를 지원하지 않으므로, CalDAV 접근은 LDAP Basic Auth를 사용해야 합니다
+- OAuth2는 웹 클라이언트나 API 접근용으로만 사용하세요
 
 ### 선택 (Actuator)
 
