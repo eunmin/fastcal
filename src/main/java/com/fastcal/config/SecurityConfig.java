@@ -1,27 +1,36 @@
 package com.fastcal.config;
 
-import com.fastcal.domain.model.vo.Email;
-import com.fastcal.domain.repository.UserRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.ldap.authentication.BindAuthenticator;
+import org.springframework.security.ldap.authentication.LdapAuthenticationProvider;
+import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.firewall.ServerWebExchangeFirewall;
 import org.springframework.security.web.server.firewall.StrictServerWebExchangeFirewall;
+import org.springframework.ldap.core.support.LdapContextSource;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.ReactiveAuthenticationManagerAdapter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -35,6 +44,30 @@ public class SecurityConfig {
 
   @Value("${actuator.admin.password:}")
   private String actuatorPassword;
+
+  @Value("${oauth2.enabled:false}")
+  private boolean oauth2Enabled;
+
+  @Value("${oauth2.issuer-uri:}")
+  private String oauth2IssuerUri;
+
+  @Value("${ldap.enabled:true}")
+  private boolean ldapEnabled;
+
+  @Value("${ldap.url:ldap://localhost:389}")
+  private String ldapUrl;
+
+  @Value("${ldap.base-dn:dc=fastcal,dc=local}")
+  private String ldapBaseDn;
+
+  @Value("${ldap.user-dn-pattern:uid={0},ou=People}")
+  private String ldapUserDnPattern;
+
+  @Value("${ldap.manager-dn:}")
+  private String ldapManagerDn;
+
+  @Value("${ldap.manager-password:}")
+  private String ldapManagerPassword;
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -58,78 +91,128 @@ public class SecurityConfig {
   }
 
   @Bean
-  public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http,
-      ReactiveUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+  public LdapContextSource ldapContextSource() {
+    LdapContextSource contextSource = new LdapContextSource();
+    contextSource.setUrl(ldapUrl);
+    contextSource.setBase(ldapBaseDn);
+    if (!ldapManagerDn.isEmpty()) {
+      contextSource.setUserDn(ldapManagerDn);
+      contextSource.setPassword(ldapManagerPassword);
+    }
+    contextSource.afterPropertiesSet();
+    return contextSource;
+  }
 
-    UserDetailsRepositoryReactiveAuthenticationManager authManager =
-        new UserDetailsRepositoryReactiveAuthenticationManager(userDetailsService);
-    authManager.setPasswordEncoder(passwordEncoder);
+  @Bean
+  public LdapAuthenticationProvider ldapAuthenticationProvider(LdapContextSource contextSource) {
+    BindAuthenticator authenticator = new BindAuthenticator(contextSource);
+    authenticator.setUserDnPatterns(new String[]{ldapUserDnPattern});
 
-    UserDetailsRepositoryReactiveAuthenticationManager actuatorAuthManager =
-        new UserDetailsRepositoryReactiveAuthenticationManager(actuatorUserDetailsService(passwordEncoder));
-    actuatorAuthManager.setPasswordEncoder(passwordEncoder);
+    DefaultLdapAuthoritiesPopulator authoritiesPopulator =
+        new DefaultLdapAuthoritiesPopulator(contextSource, "");
+    authoritiesPopulator.setDefaultRole("ROLE_USER");
+    authoritiesPopulator.setIgnorePartialResultException(true);
 
-    return http
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+    return new LdapAuthenticationProvider(authenticator, authoritiesPopulator);
+  }
+
+  @Bean
+  public ReactiveAuthenticationManager ldapReactiveAuthenticationManager(
+      LdapAuthenticationProvider ldapAuthenticationProvider) {
+    ProviderManager providerManager = new ProviderManager(ldapAuthenticationProvider);
+    return new ReactiveAuthenticationManagerAdapter(providerManager);
+  }
+
+  @Bean
+  public SecurityWebFilterChain securityFilterChain(
+      ServerHttpSecurity http,
+      ReactiveAuthenticationManager ldapReactiveAuthenticationManager,
+      PasswordEncoder passwordEncoder) {
+
+    ReactiveAuthenticationManager actuatorAuthManager = createActuatorAuthManager(passwordEncoder);
+
+    DelegatingAuthenticationManager basicAuthManager =
+        new DelegatingAuthenticationManager(ldapReactiveAuthenticationManager, actuatorAuthManager);
+
+    http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(ServerHttpSecurity.CsrfSpec::disable)
-        .httpBasic(httpBasic -> httpBasic
-            .authenticationManager(new DelegatingAuthenticationManager(authManager, actuatorAuthManager))
-            .securityContextRepository(NoOpServerSecurityContextRepository.getInstance()))
         .authorizeExchange(exchanges -> exchanges
             .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .pathMatchers("/.well-known/caldav", "/.well-known/caldav/").permitAll()
             .pathMatchers("/internal/actuator/health").permitAll()
             .pathMatchers("/internal/actuator/**").hasRole("ACTUATOR")
             .pathMatchers("/calendars/**", "/principals/**").authenticated()
-            .anyExchange().authenticated())
-        .build();
+            .anyExchange().authenticated());
+
+    if (oauth2Enabled && !oauth2IssuerUri.isEmpty()) {
+      http.oauth2ResourceServer(oauth2 -> oauth2
+          .jwt(jwt -> jwt
+              .jwtDecoder(jwtDecoder())
+              .jwtAuthenticationConverter(jwtAuthenticationConverter())
+          )
+      );
+    }
+
+    http.httpBasic(httpBasic -> httpBasic
+        .authenticationManager(basicAuthManager)
+        .securityContextRepository(NoOpServerSecurityContextRepository.getInstance()));
+
+    return http.build();
   }
 
-  private ReactiveUserDetailsService actuatorUserDetailsService(PasswordEncoder passwordEncoder) {
+  private ReactiveAuthenticationManager createActuatorAuthManager(PasswordEncoder passwordEncoder) {
     if (actuatorUsername.isEmpty() || actuatorPassword.isEmpty()) {
-      return username -> reactor.core.publisher.Mono.empty();
+      return authentication -> Mono.empty();
     }
-    return username -> {
+
+    ReactiveUserDetailsService actuatorUserDetailsService = username -> {
       if (actuatorUsername.equals(username)) {
-        return reactor.core.publisher.Mono.just(
+        return Mono.just(
             User.withUsername(actuatorUsername)
                 .password(passwordEncoder.encode(actuatorPassword))
                 .roles("ACTUATOR")
                 .build());
       }
-      return reactor.core.publisher.Mono.empty();
+      return Mono.empty();
     };
+
+    return authentication -> actuatorUserDetailsService.findByUsername(authentication.getName())
+        .filter(user -> passwordEncoder.matches(
+            (String) authentication.getCredentials(), user.getPassword()))
+        .map(user -> (Authentication) new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+            user, authentication.getCredentials(), user.getAuthorities()))
+        .switchIfEmpty(Mono.error(new org.springframework.security.authentication.BadCredentialsException("Invalid credentials")));
   }
 
-  private static class DelegatingAuthenticationManager implements org.springframework.security.authentication.ReactiveAuthenticationManager {
-    private final UserDetailsRepositoryReactiveAuthenticationManager primaryManager;
-    private final UserDetailsRepositoryReactiveAuthenticationManager actuatorManager;
+  @Bean
+  public ReactiveJwtDecoder jwtDecoder() {
+    if (oauth2Enabled && !oauth2IssuerUri.isEmpty()) {
+      return ReactiveJwtDecoders.fromIssuerLocation(oauth2IssuerUri);
+    }
+    return token -> Mono.empty();
+  }
+
+  private ReactiveJwtAuthenticationConverterAdapter jwtAuthenticationConverter() {
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    return new ReactiveJwtAuthenticationConverterAdapter(converter);
+  }
+
+  private static class DelegatingAuthenticationManager implements ReactiveAuthenticationManager {
+    private final ReactiveAuthenticationManager primaryManager;
+    private final ReactiveAuthenticationManager actuatorManager;
 
     DelegatingAuthenticationManager(
-        UserDetailsRepositoryReactiveAuthenticationManager primaryManager,
-        UserDetailsRepositoryReactiveAuthenticationManager actuatorManager) {
+        ReactiveAuthenticationManager primaryManager,
+        ReactiveAuthenticationManager actuatorManager) {
       this.primaryManager = primaryManager;
       this.actuatorManager = actuatorManager;
     }
 
     @Override
-    public reactor.core.publisher.Mono<org.springframework.security.core.Authentication> authenticate(
-        org.springframework.security.core.Authentication authentication) {
+    public Mono<Authentication> authenticate(Authentication authentication) {
       return actuatorManager.authenticate(authentication)
           .onErrorResume(e -> primaryManager.authenticate(authentication));
     }
-  }
-
-  @Bean
-  public ReactiveUserDetailsService userDetailsService(UserRepository userRepository) {
-    return email -> userRepository.findByEmail(Email.of(email))
-        .filter(com.fastcal.domain.model.User::isEnabled)
-        .map(user -> User.withUsername(user.getEmail().getValue())
-            .password(user.getPassword().getValue())
-            .roles("USER")
-            .build())
-        .switchIfEmpty(reactor.core.publisher.Mono.error(
-            new UsernameNotFoundException("User not found: " + email)));
   }
 
   @Bean

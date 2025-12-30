@@ -50,6 +50,11 @@ dependencies {
 
     // Security
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+
+    // LDAP
+    implementation("org.springframework.security:spring-security-ldap")
+    implementation("com.unboundid:unboundid-ldapsdk:7.0.0")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")

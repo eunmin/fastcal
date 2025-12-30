@@ -1,16 +1,3 @@
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-    id BIGSERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
-    enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
 -- Calendars table
 CREATE TABLE IF NOT EXISTS calendars (
     id BIGSERIAL PRIMARY KEY,
@@ -93,11 +80,5 @@ CREATE TRIGGER update_calendars_updated_at
 DROP TRIGGER IF EXISTS update_events_updated_at ON calendar_events;
 CREATE TRIGGER update_events_updated_at
     BEFORE UPDATE ON calendar_events
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();

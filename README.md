@@ -9,11 +9,38 @@ Spring WebFlux 기반의 CalDAV 서버
 - **Cache**: Redis + Caffeine (L1/L2 캐시)
 - **Resilience**: Resilience4j Circuit Breaker
 
+## 환경변수
+
+### 필수
+
+| 변수명 | 설명 | 예시 |
+|--------|------|------|
+| `DATABASE_URL` | R2DBC PostgreSQL URL | `r2dbc:postgresql://localhost:5432/fastcal` |
+| `DATABASE_USERNAME` | DB 사용자명 | `fastcal` |
+| `DATABASE_PASSWORD` | DB 비밀번호 | |
+| `REDIS_HOST` | Redis 호스트 | `localhost` |
+| `REDIS_PORT` | Redis 포트 | `6379` |
+| `APP_CORS_ALLOWED_ORIGINS` | CORS 허용 도메인 | `https://cal.example.com` |
+
+### 선택 (OAuth2)
+
+| 변수명 | 설명 | 기본값 |
+|--------|------|--------|
+| `OAUTH2_ENABLED` | OAuth2 활성화 여부 | `false` |
+| `OAUTH2_ISSUER_URI` | Keycloak issuer URI | |
+
+### 선택 (Actuator)
+
+| 변수명 | 설명 |
+|--------|------|
+| `actuator.admin.username` | Actuator 인증 사용자명 |
+| `actuator.admin.password` | Actuator 인증 비밀번호 |
+
 ## 실행
 
 ```bash
 $ cp .env.example .env
-# .env 파일에 JWT_SECRET, DATABASE_PASSWORD 등 입력
+# .env 파일에 환경변수 입력
 $ docker-compose up -d
 $ ./gradlew bootRun
 ```

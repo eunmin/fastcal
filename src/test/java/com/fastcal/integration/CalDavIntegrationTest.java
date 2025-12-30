@@ -9,18 +9,25 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.r2dbc.core.DatabaseClient;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -63,6 +70,28 @@ class CalDavIntegrationTest {
     registry.add("spring.r2dbc.password", postgres::getPassword);
     registry.add("spring.data.redis.host", redis::getHost);
     registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+    registry.add("ldap.enabled", () -> "false");
+  }
+
+  @TestConfiguration
+  static class TestSecurityConfig {
+    @Bean
+    @Primary
+    public ReactiveAuthenticationManager testAuthenticationManager() {
+      return authentication -> {
+        String username = authentication.getName();
+        String password = (String) authentication.getCredentials();
+
+        if (TEST_USER_EMAIL.equals(username) && TEST_USER_PASSWORD.equals(password)) {
+          return Mono.just(new UsernamePasswordAuthenticationToken(
+              username,
+              password,
+              List.of(new SimpleGrantedAuthority("ROLE_USER"))
+          ));
+        }
+        return Mono.error(new org.springframework.security.authentication.BadCredentialsException("Invalid credentials"));
+      };
+    }
   }
 
   @Autowired
@@ -70,9 +99,6 @@ class CalDavIntegrationTest {
 
   @Autowired
   private DatabaseClient databaseClient;
-
-  @Autowired
-  private PasswordEncoder passwordEncoder;
 
   @BeforeEach
   void setUp() {
@@ -83,18 +109,6 @@ class CalDavIntegrationTest {
     databaseClient.sql("DELETE FROM sync_changes").then().block();
     databaseClient.sql("DELETE FROM calendar_events").then().block();
     databaseClient.sql("DELETE FROM calendars").then().block();
-    databaseClient.sql("DELETE FROM users").then().block();
-
-    String encodedPassword = passwordEncoder.encode(TEST_USER_PASSWORD);
-    databaseClient.sql("""
-            INSERT INTO users (email, password, display_name, enabled)
-            VALUES (:email, :password, :displayName, true)
-            """)
-        .bind("email", TEST_USER_EMAIL)
-        .bind("password", encodedPassword)
-        .bind("displayName", "Test User")
-        .then()
-        .block();
   }
 
   @Nested

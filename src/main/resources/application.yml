@@ -91,6 +91,20 @@ resilience4j:
         timeoutDuration: 2s
         cancelRunningFuture: true
 
+# OAuth2 Resource Server (Keycloak)
+oauth2:
+  enabled: ${OAUTH2_ENABLED:false}
+  issuer-uri: ${OAUTH2_ISSUER_URI:}
+
+# LDAP Authentication
+ldap:
+  enabled: ${LDAP_ENABLED:true}
+  url: ${LDAP_URL:ldap://localhost:389}
+  base-dn: ${LDAP_BASE_DN:dc=fastcal,dc=local}
+  user-dn-pattern: ${LDAP_USER_DN_PATTERN:uid={0},ou=People}
+  manager-dn: ${LDAP_MANAGER_DN:cn=admin,dc=fastcal,dc=local}
+  manager-password: ${LDAP_MANAGER_PASSWORD:admin123}
+
 # CalDAV specific settings
 caldav:
   realm: FastCal CalDAV Server
@@ -144,4 +158,4 @@ logging:
 
 app:
   cors:
-    allowed-origins: https://cal.eunmin.dev
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}

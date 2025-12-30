@@ -2,10 +2,6 @@ package com.fastcal.config;
 
 import com.fastcal.config.converter.EmailReadingConverter;
 import com.fastcal.config.converter.EmailWritingConverter;
-import com.fastcal.config.converter.HashedPasswordReadingConverter;
-import com.fastcal.config.converter.HashedPasswordWritingConverter;
-import com.fastcal.config.converter.UserDisplayNameReadingConverter;
-import com.fastcal.config.converter.UserDisplayNameWritingConverter;
 import com.fastcal.config.converter.CalendarColorReadingConverter;
 import com.fastcal.config.converter.CalendarColorWritingConverter;
 import com.fastcal.config.converter.CalendarDescriptionReadingConverter;
@@ -67,10 +63,6 @@ public class R2dbcConfig {
         List.of(
             new EmailReadingConverter(),
             new EmailWritingConverter(),
-            new HashedPasswordReadingConverter(),
-            new HashedPasswordWritingConverter(),
-            new UserDisplayNameReadingConverter(),
-            new UserDisplayNameWritingConverter(),
             new UserIdReadingConverter(),
             new UserIdWritingConverter(),
             new CalendarIdReadingConverter(),

@@ -43,6 +43,39 @@ services:
       timeout: 5s
       retries: 5
 
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: fastcal-openldap
+    ports:
+      - "389:389"
+      - "636:636"
+    environment:
+      LDAP_ORGANISATION: ${LDAP_ORGANISATION:-FastCal}
+      LDAP_DOMAIN: ${LDAP_DOMAIN:-fastcal.local}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-dc=fastcal,dc=local}
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - openldap_data:/var/lib/ldap
+      - openldap_config:/etc/ldap/slapd.d
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost", "-b", "", "-s", "base"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: fastcal-phpldapadmin
+    ports:
+      - "8090:80"
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap
+      PHPLDAPADMIN_HTTPS: "false"
+    depends_on:
+      - openldap
+
 volumes:
   postgres_data:
   redis_data:
+  openldap_data:
+  openldap_config:
