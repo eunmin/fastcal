@@ -194,7 +194,7 @@ public class SecurityConfig {
 
   private ReactiveJwtAuthenticationConverterAdapter jwtAuthenticationConverter() {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-    converter.setPrincipalClaimName("email");
+    converter.setPrincipalClaimName("preferred_username");
     return new ReactiveJwtAuthenticationConverterAdapter(converter);
   }
 
