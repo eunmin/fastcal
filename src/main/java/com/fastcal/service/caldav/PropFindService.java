@@ -32,8 +32,13 @@ public class PropFindService {
         case "current-user-principal" -> props.put(prop, new PropValue.Href("/principals/" + userIdValue + "/"));
         case "principal-URL" -> props.put(prop, new PropValue.Href("/principals/" + userIdValue + "/"));
         case "calendar-home-set" -> props.put(prop, new PropValue.Href("/calendars/" + userIdValue + "/"));
-        case "calendar-user-address-set" -> props.put(prop,
-            new PropValue.HrefList(List.of("mailto:" + userIdValue)));
+        case "calendar-user-address-set" -> {
+          if (userIdValue.contains("@")) {
+            props.put(prop, new PropValue.HrefList(List.of("mailto:" + userIdValue)));
+          } else {
+            props.put(prop, new PropValue.HrefList(List.of()));
+          }
+        }
         case "schedule-inbox-URL" -> props.put(prop, new PropValue.Href("/calendars/" + userIdValue + "/inbox/"));
         case "schedule-outbox-URL" -> props.put(prop, new PropValue.Href("/calendars/" + userIdValue + "/outbox/"));
         case "supported-report-set" -> props.put(prop, new PropValue.SupportedReports(

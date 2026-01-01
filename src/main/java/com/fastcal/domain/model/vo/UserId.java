@@ -5,8 +5,8 @@ import java.util.regex.Pattern;
 public record UserId(String value) {
 
   private static final int MAX_LENGTH = 255;
-  private static final Pattern EMAIL_PATTERN =
-      Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+  private static final Pattern USER_ID_PATTERN =
+      Pattern.compile("^[a-zA-Z0-9._%+@-]+$");
 
   public UserId {
     if (value == null || value.isBlank()) {
@@ -15,8 +15,8 @@ public record UserId(String value) {
     if (value.length() > MAX_LENGTH) {
       throw new IllegalArgumentException("UserId cannot exceed " + MAX_LENGTH + " characters");
     }
-    if (!EMAIL_PATTERN.matcher(value).matches()) {
-      throw new IllegalArgumentException("UserId must be a valid email format");
+    if (!USER_ID_PATTERN.matcher(value).matches()) {
+      throw new IllegalArgumentException("UserId contains invalid characters");
     }
   }
 

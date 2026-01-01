@@ -15,6 +15,13 @@ class UserIdTest {
   class OfTests {
 
     @Test
+    @DisplayName("should create UserId with valid username")
+    void shouldCreateWithValidUsername() {
+      UserId userId = UserId.of("eunmin");
+      assertThat(userId.getValue()).isEqualTo("eunmin");
+    }
+
+    @Test
     @DisplayName("should create UserId with valid email")
     void shouldCreateWithValidEmail() {
       UserId userId = UserId.of("user@example.com");
@@ -22,10 +29,10 @@ class UserIdTest {
     }
 
     @Test
-    @DisplayName("should accept mixed case email")
+    @DisplayName("should accept mixed case")
     void shouldAcceptMixedCase() {
-      UserId userId = UserId.of("User@Example.COM");
-      assertThat(userId.getValue()).isEqualTo("User@Example.COM");
+      UserId userId = UserId.of("UserName123");
+      assertThat(userId.getValue()).isEqualTo("UserName123");
     }
 
     @Test
@@ -45,18 +52,18 @@ class UserIdTest {
     }
 
     @Test
-    @DisplayName("should throw on invalid email format")
-    void shouldThrowOnInvalidEmail() {
-      assertThatThrownBy(() -> UserId.of("invalid-email"))
+    @DisplayName("should throw on invalid characters")
+    void shouldThrowOnInvalidCharacters() {
+      assertThatThrownBy(() -> UserId.of("user/name"))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("valid email");
+          .hasMessageContaining("invalid characters");
     }
 
     @Test
-    @DisplayName("should throw on email exceeding max length")
+    @DisplayName("should throw on exceeding max length")
     void shouldThrowOnExceedingMaxLength() {
-      String longEmail = "a".repeat(250) + "@example.com";
-      assertThatThrownBy(() -> UserId.of(longEmail))
+      String longId = "a".repeat(256);
+      assertThatThrownBy(() -> UserId.of(longId))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("255");
     }
@@ -67,18 +74,18 @@ class UserIdTest {
   class EqualityTests {
 
     @Test
-    @DisplayName("should be equal for same email")
-    void shouldBeEqualForSameEmail() {
-      UserId userId1 = UserId.of("user@example.com");
-      UserId userId2 = UserId.of("user@example.com");
+    @DisplayName("should be equal for same userId")
+    void shouldBeEqualForSameUserId() {
+      UserId userId1 = UserId.of("eunmin");
+      UserId userId2 = UserId.of("eunmin");
       assertThat(userId1).isEqualTo(userId2);
     }
 
     @Test
     @DisplayName("should not be equal for different case")
     void shouldNotBeEqualForDifferentCase() {
-      UserId userId1 = UserId.of("user@example.com");
-      UserId userId2 = UserId.of("USER@EXAMPLE.COM");
+      UserId userId1 = UserId.of("eunmin");
+      UserId userId2 = UserId.of("EUNMIN");
       assertThat(userId1).isNotEqualTo(userId2);
     }
   }

@@ -39,3 +39,9 @@ test-output/
 # SSL Certificates (generated locally)
 nginx/certs/*.crt
 nginx/certs/*.key
+
+# Kubernetes manifests
+k8s/
+
+.dockerignore
+Dockerfile

@@ -7,7 +7,7 @@ public final class InputValidator {
   private InputValidator() {
   }
 
-  private static final Pattern USER_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+  private static final Pattern USER_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+@-]+$");
   private static final Pattern CALENDAR_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{1,100}$");
   private static final Pattern EVENT_UID_PATTERN = Pattern.compile("^[a-zA-Z0-9._@-]{1,255}$");
   private static final Pattern DEPTH_PATTERN = Pattern.compile("^(0|1|infinity)$");

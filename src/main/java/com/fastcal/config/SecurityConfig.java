@@ -212,6 +212,7 @@ public class SecurityConfig {
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
       return actuatorManager.authenticate(authentication)
+          .switchIfEmpty(primaryManager.authenticate(authentication))
           .onErrorResume(e -> primaryManager.authenticate(authentication));
     }
   }

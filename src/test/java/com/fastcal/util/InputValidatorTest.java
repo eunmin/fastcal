@@ -17,12 +17,14 @@ class InputValidatorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
+        "eunmin",
+        "user123",
         "user@example.com",
-        "test.user@example.com",
-        "user+tag@example.com",
-        "user123@example.co.kr"
+        "test.user",
+        "user+tag",
+        "user_name"
     })
-    @DisplayName("should return true for valid user IDs (email format)")
+    @DisplayName("should return true for valid user IDs")
     void shouldReturnTrueForValidUserIds(String userId) {
       assertThat(InputValidator.isValidUserId(userId)).isTrue();
     }
@@ -30,12 +32,11 @@ class InputValidatorTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {
-        "invalid",
-        "user@",
-        "@example.com",
-        "user@.com",
-        "user@example",
-        "user name@example.com"
+        "user name",
+        "user/name",
+        "user:name",
+        "user<name>",
+        "user\\name"
     })
     @DisplayName("should return false for invalid user IDs")
     void shouldReturnFalseForInvalidUserIds(String userId) {
