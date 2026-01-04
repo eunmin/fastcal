@@ -25,6 +25,7 @@ import java.util.HexFormat;
 public record ETag(String value) {
 
   private static final int MAX_LENGTH = 128;
+  public static final String EMPTY_HTTP_FORMAT = "\"\"";
 
   public ETag {
     if (value == null || value.isBlank()) {

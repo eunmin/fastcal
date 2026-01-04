@@ -1,5 +1,6 @@
 package com.fastcal.handler;
 
+import com.fastcal.domain.model.vo.CalDavDepth;
 import com.fastcal.domain.model.vo.CalendarId;
 import com.fastcal.domain.model.vo.UserId;
 import com.fastcal.service.caldav.PropFindService;
@@ -36,7 +37,7 @@ public class PropFindHandler {
     if (!InputValidator.isValidDepth(depth)) {
       return ServerResponse.badRequest().bodyValue("Invalid Depth header value");
     }
-    final String finalDepth = InputValidator.sanitizeDepth(depth);
+    final CalDavDepth calDavDepth = CalDavDepth.of(InputValidator.sanitizeDepth(depth));
 
     return request.principal()
         .map(Principal::getName)
@@ -46,7 +47,7 @@ public class PropFindHandler {
             .flatMap(body -> {
               UserId userId = UserId.of(userIdStr);
               List<String> requestedProps = propFindParser.parse(body);
-              return propFindService.getCalendarHomeProperties(userId, finalDepth, requestedProps);
+              return propFindService.getCalendarHomeProperties(userId, calDavDepth, requestedProps);
             })
             .flatMap(responses -> {
               String xml = davXmlBuilder.buildMultiStatus(responses);
@@ -97,7 +98,7 @@ public class PropFindHandler {
     if (!InputValidator.isValidDepth(depth)) {
       return ServerResponse.badRequest().bodyValue("Invalid Depth header value");
     }
-    final String finalDepth = InputValidator.sanitizeDepth(depth);
+    final CalDavDepth calDavDepth = CalDavDepth.of(InputValidator.sanitizeDepth(depth));
 
     return request.principal()
         .map(Principal::getName)
@@ -109,7 +110,7 @@ public class PropFindHandler {
             .flatMap(body -> {
               UserId userId = UserId.of(userIdStr);
               List<String> requestedProps = propFindParser.parse(body);
-              return propFindService.getCalendarHomeProperties(userId, finalDepth, requestedProps);
+              return propFindService.getCalendarHomeProperties(userId, calDavDepth, requestedProps);
             })
             .flatMap(responses -> {
               String xml = davXmlBuilder.buildMultiStatus(responses);
@@ -135,7 +136,7 @@ public class PropFindHandler {
     if (!InputValidator.isValidDepth(depth)) {
       return ServerResponse.badRequest().bodyValue("Invalid Depth header value");
     }
-    final String finalDepth = InputValidator.sanitizeDepth(depth);
+    final CalDavDepth calDavDepth = CalDavDepth.of(InputValidator.sanitizeDepth(depth));
 
     return request.principal()
         .map(Principal::getName)
@@ -147,7 +148,7 @@ public class PropFindHandler {
             .flatMap(body -> {
               UserId userId = UserId.of(userIdStr);
               List<String> requestedProps = propFindParser.parse(body);
-              return propFindService.getCalendarProperties(userId, calendarId, finalDepth, requestedProps);
+              return propFindService.getCalendarProperties(userId, calendarId, calDavDepth, requestedProps);
             })
             .flatMap(responses -> {
               String xml = davXmlBuilder.buildMultiStatus(responses);

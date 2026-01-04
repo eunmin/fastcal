@@ -65,7 +65,10 @@ public class Calendar {
   public static Calendar of(@NonNull UserId userId, @NonNull CalendarId calendarId, CalendarDisplayName displayName) {
     Objects.requireNonNull(userId, "userId must not be null");
     Objects.requireNonNull(calendarId, "calendarId must not be null");
-    return new Calendar(null, userId, calendarId, displayName, null, null, null, null, null, null, null);
+    CalendarDisplayName resolvedDisplayName = displayName != null
+        ? displayName
+        : CalendarDisplayName.of(calendarId.getValue());
+    return new Calendar(null, userId, calendarId, resolvedDisplayName, null, null, null, null, null, null, null);
   }
 
   @PersistenceCreator

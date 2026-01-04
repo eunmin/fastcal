@@ -45,3 +45,4 @@ k8s/
 
 .dockerignore
 Dockerfile
+deploy.sh

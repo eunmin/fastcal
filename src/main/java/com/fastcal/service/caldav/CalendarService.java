@@ -67,9 +67,8 @@ public class CalendarService {
             new CalendarAlreadyExistsException("Calendar " + calendarId + " already exists")))
         .switchIfEmpty(Mono.defer(() -> {
           ParsedCalendarProperties props = mkCalendarParser.parse(mkcalendarXml);
-          String displayName = props.displayName() != null ? props.displayName() : calendarId.getValue();
 
-          Calendar calendar = Calendar.of(userId, calendarId, CalendarDisplayName.of(displayName));
+          Calendar calendar = Calendar.of(userId, calendarId, CalendarDisplayName.ofNullable(props.displayName()));
           calendar.setDescription(CalendarDescription.ofNullable(props.description()));
           calendar.setColor(CalendarColor.ofNullable(props.color()));
           calendar.setTimezone(CalendarTimezone.ofNullable(props.timezone()));
